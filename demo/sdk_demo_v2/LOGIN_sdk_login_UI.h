@@ -44,11 +44,11 @@ public:
 		return digest;
 	}
 
-	std::string Base64convert(std::string aString) {
+	std::string Base64URLconvert(std::string aString) {
 		std::string result;
 
 		CryptoPP::StringSource foo8(aString, true,
-				new CryptoPP::Base64Encoder(
+				new CryptoPP::Base64URLEncoder(
 					new CryptoPP::StringSink(result)));
 
 		return result;
@@ -66,7 +66,7 @@ public:
 		return digest;
 	}
 
-	std::string new_pack(std::string aString) {
+	/*std::string new_pack(std::string aString) {
 		std::string digest;
 		CryptoPP::SHA256 hash;
 		CryptoPP::HexEncoder encoder(new CryptoPP::StringSink(digest));
@@ -76,12 +76,11 @@ public:
 		hash.Final((byte*)&digest[0]);
 
 		CryptoPP::StringSource(digest, true,
-			new CryptoPP::HexEncoder(
-				new CryptoPP::Base64Encoder(
-					new CryptoPP::StringSink(digest))));
+				new CryptoPP::Base64URLEncoder(
+					new CryptoPP::StringSink(digest)));
 
 		return digest;
-	}
+	}*/
 
 
 protected:
