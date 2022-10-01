@@ -75,12 +75,15 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 			*/
 			//const wchar_t* code_verifier = L"test";
-			std::string code_verifier = "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+			std::string code_verifier = u8"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
 			std::string Hash1 = SHA256HashString(code_verifier);
 			std::string Oauth_challenge = Base64URLconvert(Hash1);
 
 			std::string Hash2 = pack256(code_verifier);
-			std::string Zoom_challenge = Base64URLconvert(Hash2);
+			std::string hash3 = hexconvert(Hash2);
+			std::string low = lower(hash3);
+			std::string newByte = UTF8toISO8859_1(low.c_str());
+			std::string Zoom_challenge2 = Base64URLconvert(newByte);
 
 			const wchar_t* url = _T("https://zoom.us/oauth/authorize?client_id=iVpmSZ5wSyqqcFTPxkDGDg");
 			if (url)

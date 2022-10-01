@@ -11,7 +11,15 @@
 #include "filters.h"
 #include "base64.h"
 #include "hex.h"
+#include "files.h"
+#include <iostream>
+#include <cstddef>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+
 /////////////////////////
+
 enum loginTabPage
 {
 	login_RestAPI_Page,
@@ -46,24 +54,94 @@ public:
 
 	std::string Base64URLconvert(std::string aString) {
 		std::string result;
+		/*char const* c = aString.c_str();
+		byte bytes[c.size()];
+		std::memcpy(bytes, aString.data(), aString.length());*/
 
-		CryptoPP::StringSource foo8(aString, true,
+		/*std::vector<char> bytes(aString.begin(), aString.end());
+		bytes.push_back('\0');
+		char* c = &bytes[0];*/
+
+		CryptoPP::StringSource foo8((byte*)aString.data(), aString.size(), true,
 				new CryptoPP::Base64URLEncoder(
 					new CryptoPP::StringSink(result)));
+		
 
 		return result;
+
+		/*byte decoded[] = { 0xad, 0xf1, 0x52, 0x4fd, 0x86, 0xe01, 0xb1, 0x28, 0xe4, 0x53, 0xf4, 0x71, 0x1a, 0xcd, 0x5b, 0xcd, 0x76, 0x5e, 0x6e, 0x4c, 0x06, 0x11, 0xec, 0xbb, 0xbf, 0xfa, 0x2c, 0xdc, 0x4a, 0x9f, 0x28 };
+		std::string encoded;
+
+		CryptoPP::StringSource ss(decoded, sizeof(decoded), true,
+			new CryptoPP::Base64URLEncoder(
+				new CryptoPP::StringSink(encoded)
+			) 
+		); 
+		std::cout << encoded << std::endl;
+		return encoded;*/
 	}
 
-	std::string pack256(std::string aString) {
-		std::string digest;
-		CryptoPP::SHA256 hash;
+	std::string lower(std::string aString) {
+		std::transform(aString.begin(), aString.end(), aString.begin(), ::tolower);
+		return aString;
+	}
 
-		CryptoPP::StringSource foo1(aString, true,
-			new CryptoPP::HashFilter(hash,
-				new CryptoPP::HexEncoder(
-						new CryptoPP::StringSink(digest))));
+
+	std::string pack256(std::string aString) {
+		using namespace CryptoPP;
+		SHA256 hash;
+		
+		std::string digest;
+
+		StringSource(aString, true, new HashFilter(hash, new StringSink(digest)));
 
 		return digest;
+	}
+
+	std::string UTF8toISO8859_1(const char* in)
+	{
+		std::string out;
+		if (in == NULL)
+			return out;
+
+		unsigned int codepoint;
+		while (*in != 0)
+		{
+			unsigned char ch = static_cast<unsigned char>(*in);
+			if (ch <= 0x7f)
+				codepoint = ch;
+			else if (ch <= 0xbf)
+				codepoint = (codepoint << 6) | (ch & 0x3f);
+			else if (ch <= 0xdf)
+				codepoint = ch & 0x1f;
+			else if (ch <= 0xef)
+				codepoint = ch & 0x0f;
+			else
+				codepoint = ch & 0x07;
+			++in;
+			if (((*in & 0xc0) != 0x80) && (codepoint <= 0x10ffff))
+			{
+				if (codepoint <= 255)
+				{
+					out.append(1, static_cast<char>(codepoint));
+				}
+				else
+				{
+					// do whatever you want for out-of-bounds characters
+				}
+			}
+		}
+		return out;
+	}
+
+	std::string hexconvert(std::string aString) {
+		std::string result;
+
+		CryptoPP::StringSource foo8(aString, true,
+			new CryptoPP::HexEncoder(
+				new CryptoPP::StringSink(result)));
+
+		return result;
 	}
 
 	/*std::string new_pack(std::string aString) {
