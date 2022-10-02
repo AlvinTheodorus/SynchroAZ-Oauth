@@ -2,6 +2,8 @@
 #include "LOGIN_sdk_login_UI.h"
 #include <stdarg.h>
 #include "auth_service_interface.h" 
+#include "oauth_code.h"
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //class CSDKLoginWithSSOUIGroup 
 CSDKLoginWithSSOUIGroup::CSDKLoginWithSSOUIGroup()
@@ -75,19 +77,11 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 			*/
 			//const wchar_t* code_verifier = L"test";
-			std::string code_verifier = "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
-			std::string Hash1 = SHA256HashString(code_verifier);
-			std::string Oauth_challenge = Base64convert(Hash1);
 
-			std::string Hash2 = pack256(code_verifier);
-			std::string Zoom_challenge = Base64convert(Hash2);
-
-			std::string Hash3 = new_pack(code_verifier);
-			std::string Zoom_challenge2 = Base64convert(Hash3);
-
-
-			m_parentFrame->ShowErrorMessage(L"test");
-			
+			saz::oauth2::StartOAuthSequence([this](std::string code) {
+				printf("code: %s\n", code.c_str());
+				m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(code)).c_str());
+			});
 		}
 	}
 }

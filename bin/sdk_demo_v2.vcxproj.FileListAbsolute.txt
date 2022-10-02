@@ -1,0 +1,4 @@
+C:\Users\owner\5saz\5saz - Windows Zoom Base\zoom-sdk-windows-5.10.3.4884\bin\sdk_demo_v2.exe
+D:\SynchroAZ\Windows\zoom-sdk-windows-5.10.3.4884\bin\sdk_demo_v2.exe
+D:\SynchroAZ\zoom-sdk-windows-5.10.3.4884\bin\sdk_demo_v2.exe
+C:\Users\dorad\source\repos\AlvinTheodorus\SynchroAZ-Oauth\bin\sdk_demo_v2.exe

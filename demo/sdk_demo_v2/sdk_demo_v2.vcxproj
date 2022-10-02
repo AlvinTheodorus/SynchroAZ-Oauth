@@ -84,7 +84,7 @@
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <IncludePath>..\..\h;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\..\CryptoPP\$(Platform)\Output\$(Configuration);..\..\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>..\..\bin\</OutDir>
@@ -219,6 +219,7 @@
     <ClCompile Include="more_features_ui.cpp" />
     <ClCompile Include="more_features_workflow.cpp" />
     <ClCompile Include="more_menu_ui.cpp" />
+    <ClCompile Include="oauth_code.cpp" />
     <ClCompile Include="ParticipantPopMenu.cpp" />
     <ClCompile Include="participant_ui.cpp" />
     <ClCompile Include="sdk_demo_app.cpp" />
@@ -285,6 +286,7 @@
     <ClInclude Include="more_features_ui.h" />
     <ClInclude Include="more_features_workflow.h" />
     <ClInclude Include="more_menu_ui.h" />
+    <ClInclude Include="oauth_code.h" />
     <ClInclude Include="ParticipantPopMenu.h" />
     <ClInclude Include="participant_ui.h" />
     <ClInclude Include="Resource.h" />

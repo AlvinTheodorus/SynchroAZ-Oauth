@@ -315,6 +315,9 @@
     <ClCompile Include="join_webinar_wnd_ui.cpp">
       <Filter>Source Files\3_how_to_start_join_meeting\4_webinar_register_join_meeting</Filter>
     </ClCompile>
+    <ClCompile Include="oauth_code.cpp">
+      <Filter>Source Files\2_how_to_login</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sdk_demo_app.h">
@@ -502,6 +505,9 @@
     </ClInclude>
     <ClInclude Include="join_webinar_wnd_ui.h">
       <Filter>Source Files\3_how_to_start_join_meeting\4_webinar_register_join_meeting</Filter>
+    </ClInclude>
+    <ClInclude Include="oauth_code.h">
+      <Filter>Source Files\2_how_to_login</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
