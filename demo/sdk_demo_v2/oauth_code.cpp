@@ -175,8 +175,8 @@ namespace saz {
 
 			auto url_wide = StringToWideString(url_naive);
 
-			//::ShellExecute(nullptr, _T("open"), url_wide.get(), nullptr, nullptr, SW_SHOWNORMAL);
-			::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
+			::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+			//::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
 			std::thread thread([code_callback] {
 
 				const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
