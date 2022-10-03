@@ -271,6 +271,7 @@
     <ClInclude Include="custom_ui_video_flow.h" />
     <ClInclude Include="custom_ui_video_mgr.h" />
     <ClInclude Include="display_cc_ui.h" />
+    <ClInclude Include="http_client.h" />
     <ClInclude Include="init_auth_sdk_workflow.h" />
     <ClInclude Include="invitation_ui.h" />
     <ClInclude Include="invitation_workflow.h" />

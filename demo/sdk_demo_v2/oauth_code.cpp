@@ -52,7 +52,7 @@ namespace {
 
 	constexpr char OAUTH2_RESPONSE_TYPE[] = "code";
 	constexpr char OAUTH2_REDIRECT_URI[] = "com.5saz://v1/auth/oauth2";
-	constexpr char OAUTH2_CLIENT_ID[] = "iVpmSZ5wSyqqcFTPxkDGDg";
+	constexpr char OAUTH2_CLIENT_ID[] = "ycoFdKfSROl4EjeqUNeGw";
 	constexpr char OAUTH2_CODE_CHALLENGE_METHOD[] = "S256";
 	constexpr TCHAR OAUTH2_CODE_EXCHANGE_PIPE_PATH[] = _T(R"(\\.\pipe\synchroaz\com.5saz.auth.oauth2)");
 
@@ -161,23 +161,23 @@ namespace saz {
 		}
 
 		void StartOAuthSequence(std::function<void(std::string)> code_callback) {
-			std::string code_verifier = GenerateRandomString(43);//"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
-			std::string code_challenge = Base64Encode(Sha256HashString(code_verifier));
-
-			std::stringstream ss;
-			ss << "https://zoom.us/oauth/authorize"
-				<< "?response_type=" << OAUTH2_RESPONSE_TYPE
-				<< "&redirect_uri=" << OAUTH2_REDIRECT_URI
-				<< "&client_id=" << OAUTH2_CLIENT_ID
-				<< "&code_challenge=" << code_challenge
-				<< "&code_challenge_method=" << OAUTH2_CODE_CHALLENGE_METHOD;
-			std::string url_naive = ss.str();
-
-			auto url_wide = StringToWideString(url_naive);
-
-			::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-			//::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
 			std::thread thread([code_callback] {
+				std::string code_verifier = GenerateRandomString(43);//"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+				std::string code_challenge = Base64Encode(Sha256HashString(code_verifier));
+
+				std::stringstream ss;
+				ss << "https://zoom.us/oauth/authorize"
+					<< "?response_type=" << OAUTH2_RESPONSE_TYPE
+					<< "&redirect_uri=" << OAUTH2_REDIRECT_URI
+					<< "&client_id=" << OAUTH2_CLIENT_ID
+					<< "&code_challenge=" << code_challenge
+					<< "&code_challenge_method=" << OAUTH2_CODE_CHALLENGE_METHOD;
+				std::string url_naive = ss.str();
+
+				auto url_wide = StringToWideString(url_naive);
+
+				::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+				//::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
 
 				const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
 				if (hPipe == INVALID_HANDLE_VALUE) {
@@ -234,5 +234,7 @@ namespace saz {
 			});
 			thread.detach();
 		}
+
+		void StartPkceSequence(const std::string& code, const std::string& code_verifier, std::function<void(Token)> token_callback) {}
 	}
 }

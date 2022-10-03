@@ -293,8 +293,8 @@ void CAuthSDKUIGroup::DoAuthBtnClick()
 	}
 	*/
 		ZOOM_SDK_NAMESPACE::AuthParam param;
-		param.appKey = L"WfXMEcXBTVAxEqaTER6u83n22qfdkH9Jh6aY"; //devzoom Key
-		param.appSecret = L"UY4gAFPro5MUjHDyO8sz0VWhP1LBXSTMWKIj";
+		param.appKey = L"lshQAYej2YVuWGg1gpEQAXgdYMwzPyKUj2yW"; //devzoom Key
+		param.appSecret = L"at38WWtpoBDB6usHrD71G9Ap4l8UPTG2lVo1";
 		if (ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS != m_AuthSDKWorkFlow.Auth(param))
 		{
 			if (m_mainFrame)
