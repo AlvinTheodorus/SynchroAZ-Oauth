@@ -75,6 +75,10 @@ namespace saz {
 
 		public:
 			HttpResponse(int status_code, std::string body) : status_code_(status_code), body_(std::move(body)) {}
+
+		public:
+			int statusCode() const noexcept { return status_code_; }
+			const std::string& body() const noexcept { return body_; }
 		};
 
 		class HttpClient {
@@ -124,18 +128,22 @@ namespace saz {
 				);
 			}
 
-			void sendRequest(HINTERNET request_handle, const IHttpBody& body) {
+			void sendRequest(HINTERNET request_handle, const std::vector<tstring>& headers, const IHttpBody& body) {
 				const auto bytes = body.toBytes();
 				auto bytes_p = std::make_unique<char[]>(bytes.size());
 				std::copy(std::begin(bytes), std::end(bytes), bytes_p.get());
 
-				tstring header = _T("Content-Type: application/x-www-form-urlencoded");
 
+				for (const auto& header : headers) {
+					::HttpAddRequestHeaders(request_handle, header.c_str(), wcslen(header.c_str()), 0);
+				}
+
+				tstring header = _T("Content-Type: application/x-www-form-urlencoded");
 				::HttpSendRequest(request_handle, header.c_str(), wcslen(header.c_str()), bytes_p.get(), bytes.size());
 			}
 
 			HttpResponse getResponse(HINTERNET request_handle) {
-				DWORD status_code;
+				DWORD status_code = 0;
 				DWORD length = sizeof(status_code);
 				::HttpQueryInfo(request_handle, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &status_code, &length, 0);
 
@@ -154,9 +162,9 @@ namespace saz {
 			}
 
 		public:
-			HttpResponse post(const tstring& path, const HttpUrlEncodedBody& body) {
+			HttpResponse post(const tstring& path, const std::vector<tstring>& headers, const HttpUrlEncodedBody& body) {
 				auto request = openRequest(_T("POST"), path);
-				sendRequest(request, body);
+				sendRequest(request, headers, body);
 				return getResponse(request);
 			}
 		};

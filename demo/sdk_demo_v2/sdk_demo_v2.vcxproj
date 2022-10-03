@@ -277,6 +277,7 @@
     <ClInclude Include="invitation_workflow.h" />
     <ClInclude Include="Join_meeting_for_login_user_ui.h" />
     <ClInclude Include="join_webinar_wnd_ui.h" />
+    <ClInclude Include="json.h" />
     <ClInclude Include="LoggedIn_sdk_controller_ui.h" />
     <ClInclude Include="LoggedIn_sdk_controller_workflow.h" />
     <ClInclude Include="LOGIN_join_meeting_only_workflow.h" />
