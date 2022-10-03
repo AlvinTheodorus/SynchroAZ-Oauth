@@ -2,6 +2,8 @@
 #include "LOGIN_sdk_login_UI.h"
 #include <stdarg.h>
 #include "auth_service_interface.h" 
+#include "oauth_code.h"
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //class CSDKLoginWithSSOUIGroup 
 CSDKLoginWithSSOUIGroup::CSDKLoginWithSSOUIGroup()
@@ -70,28 +72,34 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 				prefix_of_vanity_url = _T("success");
 
 			//const wchar_t* url = m_loginSSOWorkFlow.GetSSOUrl(prefix_of_vanity_url);
-			const wchar_t* url = _T("https://zoom.us/oauth/authorize?iVpmSZ5wSyqqcFTPxkDGDg");
+			const wchar_t* url = _T("https://zoom.us/oauth/authorize?");
 			if (url)
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 			*/
 			//const wchar_t* code_verifier = L"test";
-			std::string code_verifier = u8"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
-			std::string Hash1 = SHA256HashString(code_verifier);
-			std::string Oauth_challenge = Base64URLconvert(Hash1);
+			//std::string code_verifier = "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+			//std::string Hash1 = SHA256HashString(code_verifier);
+			//std::string Oauth_challenge = Base64URLconvert(Hash1);
 
-			std::string Hash2 = pack256(code_verifier);
-			std::string hash3 = hexconvert(Hash2);
-			std::string low = lower(hash3);
-			std::string newByte = UTF8toISO8859_1(low.c_str());
-			std::string Zoom_challenge2 = Base64URLconvert(newByte);
+			//std::string Hash2 = pack256(code_verifier);
+			//std::string hash3 = hexconvert(Hash2);
+			//std::string low = lower(hash3);
+			////std::string newByte = UTF8toISO8859_1(low.c_str());
+			//std::string Zoom_challenge2 = Base64URLconvert(low);
+			//
+			//if (url)
+			//	::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 
 			const wchar_t* url = _T("https://zoom.us/oauth/authorize?client_id=iVpmSZ5wSyqqcFTPxkDGDg");
 			if (url)
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 
+			//m_parentFrame->ShowErrorMessage(L"test");
 
-			m_parentFrame->ShowErrorMessage(L"test");
-			
+			saz::oauth2::StartOAuthSequence([this](std::string code) {
+				printf("code: %s\n", code.c_str());
+				m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(code)).c_str());
+			});
 		}
 	}
 }

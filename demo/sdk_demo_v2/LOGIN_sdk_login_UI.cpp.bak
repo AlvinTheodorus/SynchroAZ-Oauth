@@ -1,9 +1,7 @@
 #include "stdafx.h"
 #include "LOGIN_sdk_login_UI.h"
 #include <stdarg.h>
-#include "auth_service_interface.h"
-#include "mess_info.h"
-
+#include "auth_service_interface.h" 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //class CSDKLoginWithSSOUIGroup 
 CSDKLoginWithSSOUIGroup::CSDKLoginWithSSOUIGroup()
@@ -66,14 +64,34 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 		}
 		else if (msg.pSender == m_btnGetSSOLoginUrl)
 		{
-			std::wstring prefix_of_vanity_url = m_editPrefixOfVanityUrl->GetText();
+			/*std::wstring prefix_of_vanity_url = m_editPrefixOfVanityUrl->GetText();
 
 			if (prefix_of_vanity_url.empty())
 				prefix_of_vanity_url = _T("success");
 
-			const wchar_t* url = m_loginSSOWorkFlow.GetSSOUrl(prefix_of_vanity_url);
+			//const wchar_t* url = m_loginSSOWorkFlow.GetSSOUrl(prefix_of_vanity_url);
+			const wchar_t* url = _T("https://zoom.us/oauth/authorize?iVpmSZ5wSyqqcFTPxkDGDg");
 			if (url)
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
+			*/
+			//const wchar_t* code_verifier = L"test";
+			std::string code_verifier = u8"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+			std::string Hash1 = SHA256HashString(code_verifier);
+			std::string Oauth_challenge = Base64URLconvert(Hash1);
+
+			std::string Hash2 = pack256(code_verifier);
+			std::string hash3 = hexconvert(Hash2);
+			std::string low = lower(hash3);
+			std::string newByte = UTF8toISO8859_1(low.c_str());
+			std::string Zoom_challenge2 = Base64URLconvert(newByte);
+
+			const wchar_t* url = _T("https://zoom.us/oauth/authorize?client_id=iVpmSZ5wSyqqcFTPxkDGDg");
+			if (url)
+				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
+
+
+			m_parentFrame->ShowErrorMessage(L"test");
+			
 		}
 	}
 }
@@ -89,8 +107,8 @@ void CSDKLoginWithSSOUIGroup::DoLoginWithSSOBtnClick()
 		err = m_loginSSOWorkFlow.Login(sso_web_uri_protocol.c_str());
 		if (ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS != err)
 		{
-			//if(m_parentFrame)
-			//	m_parentFrame->ShowErrorMessage(L"SSO Login failed!");
+			if(m_parentFrame)
+				m_parentFrame->ShowErrorMessage(L"SSO Login failed!");
 		}
 		else
 		{

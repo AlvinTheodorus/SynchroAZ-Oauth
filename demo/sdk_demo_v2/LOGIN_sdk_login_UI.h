@@ -62,8 +62,12 @@ public:
 		bytes.push_back('\0');
 		char* c = &bytes[0];*/
 
-		CryptoPP::StringSource foo8((byte*)aString.data(), aString.size(), true,
+		/*CryptoPP::StringSource foo8((byte*)aString.data(), aString.size(), true,
 				new CryptoPP::Base64URLEncoder(
+					new CryptoPP::StringSink(result)));*/
+					
+		CryptoPP::StringSource foo8(aString, true,
+				new CryptoPP::Base64Encoder(
 					new CryptoPP::StringSink(result)));
 		
 
@@ -88,12 +92,18 @@ public:
 
 
 	std::string pack256(std::string aString) {
-		using namespace CryptoPP;
-		SHA256 hash;
+		/*using namespace CryptoPP;
+		SHA256 hash;*/
 		
 		std::string digest;
+		CryptoPP::SHA256 hash;
 
-		StringSource(aString, true, new HashFilter(hash, new StringSink(digest)));
+		/*StringSource(aString, true, new HashFilter(hash, new StringSink(digest)));*/
+
+		CryptoPP::StringSource foo1(aString, true,
+			new CryptoPP::HashFilter(hash,
+				new CryptoPP::HexEncoder(
+						new CryptoPP::StringSink(digest))));
 
 		return digest;
 	}
@@ -144,7 +154,7 @@ public:
 		return result;
 	}
 
-	/*std::string new_pack(std::string aString) {
+	std::string new_pack(std::string aString) {
 		std::string digest;
 		CryptoPP::SHA256 hash;
 		CryptoPP::HexEncoder encoder(new CryptoPP::StringSink(digest));
@@ -154,11 +164,12 @@ public:
 		hash.Final((byte*)&digest[0]);
 
 		CryptoPP::StringSource(digest, true,
-				new CryptoPP::Base64URLEncoder(
-					new CryptoPP::StringSink(digest)));
+			new CryptoPP::HexEncoder(
+				new CryptoPP::Base64Encoder(
+					new CryptoPP::StringSink(digest))));
 
 		return digest;
-	}*/
+	}
 
 
 protected:

@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "sdk_init_auth_ui.h"
 #include "mess_info.h"
+
+#include <memory>
+
 CInitSDKUIGroup::CInitSDKUIGroup()
 {
 	m_InitSDKPage = NULL;
@@ -38,6 +41,15 @@ void CInitSDKUIGroup::Show()
 		{
 			///m_mainFrame->SetCurrentPage(m_InitSDKPage);
 			DoInitBtnClick(); /// OLD 
+			if (__argc > 1) {
+				const char* argv1 = __argv[1];
+				const auto argv1_len = strlen(argv1);
+				auto url_wide = std::make_unique<wchar_t[]>(argv1_len + 1);
+
+				std::size_t converted = 0;
+				mbstowcs_s(&converted, url_wide.get(),argv1_len + 1, argv1, _TRUNCATE);
+					m_mainFrame->ShowErrorMessage(url_wide.get());
+			}
 		}
 	}
 }
@@ -267,7 +279,7 @@ void CAuthSDKUIGroup::DoAuthBtnClick()
 		ZOOM_SDK_NAMESPACE::AuthContext param;
 		param.jwt_token = strToken.c_str();
 		ZOOM_SDK_NAMESPACE::AuthParam param;
-		param.appKey = L"WfXMEcXBTVAxEqaTER6u83n22qfdkH9Jh6aY";
+		param.appKey = L"WfXMEcXBTVAxEqaTER6u83n22qfdkH9Jh6aY";//devzoom Key
 		param.appSecret = L"UY4gAFPro5MUjHDyO8sz0VWhP1LBXSTMWKIj";
 		if (ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS != m_AuthSDKWorkFlow.Auth(param))
 		{
@@ -281,8 +293,8 @@ void CAuthSDKUIGroup::DoAuthBtnClick()
 	}
 	*/
 		ZOOM_SDK_NAMESPACE::AuthParam param;
-		param.appKey = L"WfXMEcXBTVAxEqaTER6u83n22qfdkH9Jh6aY"; //devzoom Key
-		param.appSecret = L"UY4gAFPro5MUjHDyO8sz0VWhP1LBXSTMWKIj";
+		param.appKey = L"lshQAYej2YVuWGg1gpEQAXgdYMwzPyKUj2yW"; //osamu Key
+		param.appSecret = L"at38WWtpoBDB6usHrD71G9Ap4l8UPTG2lVo1";
 		if (ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS != m_AuthSDKWorkFlow.Auth(param))
 		{
 			if (m_mainFrame)
