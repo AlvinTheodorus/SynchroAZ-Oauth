@@ -19,10 +19,10 @@
 
 namespace {
 	std::string GenerateRandomString(std::size_t length) {
-		static constexpr char CHARS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		static constexpr char CHARS[] = u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 		std::random_device rand_device;
-		std::uniform_int_distribution<std::uint_fast16_t> rand(0, std::size(CHARS) - 1);
+		std::uniform_int_distribution<std::uint_fast16_t> rand(0, std::size(CHARS) - 2);
 
 		std::string s(length, '\0');
 		for (std::size_t i = 0; i < length; ++i) {
@@ -31,24 +31,28 @@ namespace {
 		return s;
 	}
 
-	std::string Sha256HashString(std::string aString) {
+	std::string ConvertToS256(std::string aString) {
 		std::string digest;
 		CryptoPP::SHA256 hash;
 
-		CryptoPP::StringSource foo9(aString, true,
+		CryptoPP::StringSource foo(aString, true,
 			new CryptoPP::HashFilter(hash,
-				new CryptoPP::StringSink(digest)));
+				new CryptoPP::Base64Encoder(
+					new CryptoPP::StringSink(digest), false, 500)));
 
+		while (digest.back() == '=') {
+			digest.pop_back();
+		}
+		std::replace(std::begin(digest), std::end(digest), '+', '-');
+		std::replace(std::begin(digest), std::end(digest), '/', '_');
 		return digest;
 	}
 
 	std::string Base64Encode(std::string aString) {
 		std::string result;
-
 		CryptoPP::StringSource foo8(aString, true,
 			new CryptoPP::Base64Encoder(
 				new CryptoPP::StringSink(result)));
-
 		return result;
 	}
 
@@ -162,6 +166,7 @@ namespace saz {
 					}
 
 					::WriteFile(hPipe, url.c_str(), url.size(), nullptr, nullptr);
+					::CloseHandle(hPipe);
 					std::exit(EXIT_SUCCESS);
 				}
 			}
@@ -170,8 +175,8 @@ namespace saz {
 		void StartOAuthSequence(std::function<void(Token)> token_callback) {
 			std::thread thread([token_callback] {
 				std::string code_verifier = GenerateRandomString(64);
-				std::string code_challenge = Base64Encode(Sha256HashString(code_verifier));
-
+				std::string code_challenge = ConvertToS256(code_verifier);
+				
 				std::stringstream ss;
 				ss << "https://zoom.us/oauth/authorize"
 					<< "?response_type=" << OAUTH2_RESPONSE_TYPE
@@ -198,6 +203,8 @@ namespace saz {
 						break;
 					}
 				}
+				::DisconnectNamedPipe(hPipe);
+				::CloseHandle(hPipe);
 
 				const auto uri = Uri::Parse(url);
 				if (!uri) {
@@ -234,8 +241,7 @@ namespace saz {
 					std::exit(EXIT_FAILURE);
 				}
 
-				const auto code = query.at("code")[0];
-				printf("code: %s\n", code.c_str());
+				const auto& code = query.at("code")[0];
 
 				const auto token = RunPkceSequence(code, code_verifier);
 				token_callback(token);
@@ -248,8 +254,8 @@ namespace saz {
 			const auto basicKeyWide = StringToWideString(basicKey);
 
 			http::HttpClient client;
-			client.connect(_T("zoom.us"));
 			const auto response = client.post(
+				_T("zoom.us"),
 				OAUTH2_TOKEN_ENDPOINT_PATH,
 				{ _T("Authorization: Basic ") + basicKeyWide },
 				http::HttpUrlEncodedBody{}
@@ -258,8 +264,9 @@ namespace saz {
 				.add("redirect_uri", OAUTH2_REDIRECT_URI)
 				.add("code_verifier", code_verifier)
 			);
-
+			fprintf(stderr, "body: %s\n", response.body().c_str());
 			const auto jo = nlohmann::json::parse(response.body());
+
 			const auto access_token = jo.at("access_token").get<std::string>();
 			const auto token_type = jo.at("token_type").get<std::string>();
 			const auto refresh_token = jo.at("refresh_token").get<std::string>();
