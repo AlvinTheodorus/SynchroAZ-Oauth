@@ -52,15 +52,8 @@ public:
 		return digest;
 	}
 
-	std::string Base64URLconvert(std::string aString) {
+	std::string Base64convert(std::string aString) {
 		std::string result;
-		/*char const* c = aString.c_str();
-		byte bytes[c.size()];
-		std::memcpy(bytes, aString.data(), aString.length());*/
-
-		/*std::vector<char> bytes(aString.begin(), aString.end());
-		bytes.push_back('\0');
-		char* c = &bytes[0];*/
 
 		/*CryptoPP::StringSource foo8((byte*)aString.data(), aString.size(), true,
 				new CryptoPP::Base64URLEncoder(
@@ -84,6 +77,17 @@ public:
 		std::cout << encoded << std::endl;
 		return encoded;*/
 	}
+	std::string Base64URLconvert(std::string aString) {
+		std::string result;
+
+		CryptoPP::StringSource foo8((byte*)aString.data(), aString.size(), true,
+				new CryptoPP::Base64URLEncoder(
+					new CryptoPP::StringSink(result)));
+
+
+
+		return result;
+	}
 
 	std::string lower(std::string aString) {
 		std::transform(aString.begin(), aString.end(), aString.begin(), ::tolower);
@@ -99,7 +103,7 @@ public:
 		CryptoPP::SHA256 hash;
 
 		/*StringSource(aString, true, new HashFilter(hash, new StringSink(digest)));*/
-
+		
 		CryptoPP::StringSource foo1(aString, true,
 			new CryptoPP::HashFilter(hash,
 				new CryptoPP::HexEncoder(
@@ -107,6 +111,7 @@ public:
 
 		return digest;
 	}
+
 
 	std::string UTF8toISO8859_1(const char* in)
 	{
