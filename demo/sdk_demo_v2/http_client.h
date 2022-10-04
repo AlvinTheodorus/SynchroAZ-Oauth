@@ -158,7 +158,7 @@ namespace saz {
 					body.append(buffer, buffer + read_size);
 				}
 
-				return {status_code, body};
+				return { static_cast<int>(status_code), body };
 			}
 
 		public:

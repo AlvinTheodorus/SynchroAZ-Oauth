@@ -55,11 +55,13 @@ namespace {
 	constexpr char OAUTH2_RESPONSE_TYPE[] = "code";
 	constexpr char OAUTH2_REDIRECT_URI[] = "com.5saz://v1/auth/oauth2";
 	constexpr char OAUTH2_CLIENT_ID[] = "ycoFdKfSROl4EjeqUNeGw";
-	constexpr char OAUTH2_CLIENT_SECRET[] = "A"; // TODO
+	constexpr char OAUTH2_CLIENT_SECRET[] = "";
 	constexpr char OAUTH2_CODE_CHALLENGE_METHOD[] = "S256";
 	constexpr TCHAR OAUTH2_CODE_EXCHANGE_PIPE_PATH[] = _T(R"(\\.\pipe\synchroaz\com.5saz.auth.oauth2)");
 	constexpr TCHAR OAUTH2_TOKEN_ENDPOINT_SERVER[] = _T("zoom.us");
 	constexpr TCHAR OAUTH2_TOKEN_ENDPOINT_PATH[] = _T("/oauth/token");
+
+	static_assert(std::size(OAUTH2_CLIENT_SECRET) > 0, "OAUTH2_CLIENT_SECRET is not set");
 
 	class Uri {
 	public:
@@ -165,9 +167,9 @@ namespace saz {
 			}
 		}
 
-		void StartOAuthSequence(std::function<void(std::string)> code_callback) {
-			std::thread thread([code_callback] {
-				std::string code_verifier = GenerateRandomString(43);//"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+		void StartOAuthSequence(std::function<void(Token)> token_callback) {
+			std::thread thread([token_callback] {
+				std::string code_verifier = GenerateRandomString(64);
 				std::string code_challenge = Base64Encode(Sha256HashString(code_verifier));
 
 				std::stringstream ss;
@@ -182,7 +184,6 @@ namespace saz {
 				auto url_wide = StringToWideString(url_naive);
 
 				::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-				//::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
 
 				const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
 				if (hPipe == INVALID_HANDLE_VALUE) {
@@ -235,39 +236,38 @@ namespace saz {
 
 				const auto code = query.at("code")[0];
 				printf("code: %s\n", code.c_str());
-				code_callback(code);
+
+				const auto token = RunPkceSequence(code, code_verifier);
+				token_callback(token);
 			});
 			thread.detach();
 		}
 
-		void StartPkceSequence(const std::string& code, const std::string& code_verifier, std::function<void(Token)> token_callback) {
-			std::thread thread([code, code_verifier, token_callback] {
-				const auto basicKey = Base64Encode(OAUTH2_CLIENT_ID + std::string(":") + OAUTH2_CLIENT_SECRET);
-				const auto basicKeyWide = StringToWideString(basicKey);
+		Token RunPkceSequence(const std::string& code, const std::string& code_verifier) {
+			const auto basicKey = Base64Encode(OAUTH2_CLIENT_ID + std::string(":") + OAUTH2_CLIENT_SECRET);
+			const auto basicKeyWide = StringToWideString(basicKey);
 
-				http::HttpClient client;
-				client.connect(_T("zoom.us"));
-				const auto response = client.post(
-					OAUTH2_TOKEN_ENDPOINT_PATH,
-					{ _T("Authorization: Basic ") + basicKeyWide },
-					http::HttpUrlEncodedBody{}
-						.add("code", code)
-						.add("grant_type", "authorization_code")
-						.add("redirect_uri", OAUTH2_REDIRECT_URI)
-						.add("code_verifier", code_verifier)
-				);
+			http::HttpClient client;
+			client.connect(_T("zoom.us"));
+			const auto response = client.post(
+				OAUTH2_TOKEN_ENDPOINT_PATH,
+				{ _T("Authorization: Basic ") + basicKeyWide },
+				http::HttpUrlEncodedBody{}
+				.add("code", code)
+				.add("grant_type", "authorization_code")
+				.add("redirect_uri", OAUTH2_REDIRECT_URI)
+				.add("code_verifier", code_verifier)
+			);
 
-				const auto jo = nlohmann::json::parse(response.body());
-				const auto access_token = jo.at("access_token").get<std::string>();
-				const auto token_type = jo.at("token_type").get<std::string>();
-				const auto refresh_token = jo.at("refresh_token").get<std::string>();
-				const auto expires_in = jo.at("expires_in").get<std::uint_fast64_t>();
-				const auto scope = jo.at("scope").get<std::string>();
+			const auto jo = nlohmann::json::parse(response.body());
+			const auto access_token = jo.at("access_token").get<std::string>();
+			const auto token_type = jo.at("token_type").get<std::string>();
+			const auto refresh_token = jo.at("refresh_token").get<std::string>();
+			const auto expires_in = jo.at("expires_in").get<std::uint_fast64_t>();
+			const auto scope = jo.at("scope").get<std::string>();
 
-				Token token(access_token, token_type, refresh_token, expires_in, scope);
-				token_callback(token);
-			});
-			thread.detach();
+			Token token(access_token, token_type, refresh_token, expires_in, scope);
+			return token;
 		}
 	}
 }

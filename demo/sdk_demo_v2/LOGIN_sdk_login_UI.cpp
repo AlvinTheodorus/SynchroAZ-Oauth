@@ -78,9 +78,9 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 			*/
 			//const wchar_t* code_verifier = L"test";
 
-			saz::oauth2::StartOAuthSequence([this](std::string code) {
-				printf("code: %s\n", code.c_str());
-				m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(code)).c_str());
+			saz::oauth2::StartOAuthSequence([this](saz::oauth2::Token token) {
+				printf("code: %s\n", token.accessToken().c_str());
+				m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
 			});
 		}
 	}

@@ -27,10 +27,17 @@ namespace saz {
 				, refresh_token_(std::move(refresh_token))
 				, expires_in_(expires_in)
 				, scope_(std::move(scope)) {}
+
+		public:
+			const std::string& accessToken() const noexcept { return access_token_; }
+			const std::string& tokenType() const noexcept { return token_type_; }
+			const std::string& refreshToken() const noexcept { return refresh_token_; }
+			std::uint_fast64_t expiresIn() const noexcept { return expires_in_; }
+			const std::string& scope() const noexcept { return scope_; }
 		};
 
 		void PassOAuthCodeToMainProcess();
-		void StartOAuthSequence(std::function<void(std::string)> code_callback);
-		void StartPkceSequence(const std::string& code, const std::string& code_verifier, std::function<void(Token)> token_callback);
+		void StartOAuthSequence(std::function<void(Token)> token_callback);
+		Token RunPkceSequence(const std::string& code, const std::string& code_verifier);
 	}
 }
