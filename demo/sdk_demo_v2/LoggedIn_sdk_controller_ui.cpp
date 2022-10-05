@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LoggedIn_sdk_controller_ui.h"
+#include "oauth_code.h"
 
 
 CSDKLoggedInUIMgr::CSDKLoggedInUIMgr()
@@ -379,8 +380,13 @@ void CSDKLoggedInUIMgr::DoStartMeetingBtnClick(bool bHasVideo)
 	{
 		pConfig->EnableAutoEndOtherMeetingWhenStartMeeting(true);
 	}
-	ZOOM_SDK_NAMESPACE::StartParam startParam;
-	startParam.userType = ZOOM_SDK_NAMESPACE::SDK_UT_NORMALUSER;
+
+	const auto token = saz::oauth2::Token::GetCurrent();
+	const auto zakToken = saz::oauth2::GetZakToken(token);
+	const auto zakTokenWide = saz::StringToWideString(zakToken);
+
+	ZOOM_SDK_NAMESPACE::StartParam startParam = {};
+	startParam.userType = ZOOM_SDK_NAMESPACE::SDK_UT_WITHOUT_LOGIN;
 	startParam.param.normaluserStart.vanityID = NULL;
 	startParam.param.normaluserStart.hDirectShareAppWnd = NULL;
 	startParam.param.normaluserStart.customer_key = NULL;
@@ -388,6 +394,11 @@ void CSDKLoggedInUIMgr::DoStartMeetingBtnClick(bool bHasVideo)
 	startParam.param.normaluserStart.isAudioOff = false;
 	startParam.param.normaluserStart.isDirectShareDesktop = false;
 
+	ZOOM_SDK_NAMESPACE::StartParam4WithoutLogin startMeetingWithoutLoginParam = {};
+	startMeetingWithoutLoginParam.zoomuserType = ZOOM_SDK_NAMESPACE::ZoomUserType_APIUSER;
+	startMeetingWithoutLoginParam.userZAK = zakTokenWide.c_str();
+
+	startParam.param.withoutloginStart = startMeetingWithoutLoginParam;
 	
 	if (SDKInterfaceWrap::GetInst().IsSelectCustomizedUIMode() && m_pAppEvent)
 		m_pAppEvent->InitCustomizedUI();

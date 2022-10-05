@@ -80,7 +80,13 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 
 			saz::oauth2::StartOAuthSequence([this](saz::oauth2::Token token) {
 				printf("code: %s\n", token.accessToken().c_str());
-				m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
+				// m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
+
+				token.setAsCurrent();
+				const std::string zak = saz::oauth2::GetZakToken(token);
+				OutputDebugStringA(zak.c_str());
+				// SDKInterfaceWrap::GetInst().onLoginReturnWithReason(ZOOMSDK::LOGIN_SUCCESS, nullptr, ZOOMSDK::LoginFail_None);
+				m_parentFrame->GetAppEvent()->onShowLoggedInUI();
 			});
 		}
 	}

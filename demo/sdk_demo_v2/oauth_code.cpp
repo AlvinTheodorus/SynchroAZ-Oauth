@@ -142,6 +142,8 @@ namespace saz {
 	}
 
 	namespace oauth2 {
+		Token Token::current_;
+
 		void PassOAuthCodeToMainProcess() {
 			if (__argc > 1) {
 				const std::string argv1 = __argv[1];
@@ -275,6 +277,21 @@ namespace saz {
 
 			Token token(access_token, token_type, refresh_token, expires_in, scope);
 			return token;
+		}
+
+		std::string GetZakToken(Token token) {
+			token = token.refreshIfExpired();
+
+			http::HttpClient client;
+			const auto res = client.get(
+				_T("api.zoom.us"),
+				_T("/v2/users/me/token?type=zak"),
+				{ _T("Authorization: Bearer ") + StringToWideString(token.accessToken()) }
+			);
+			const auto tokenJo = nlohmann::json::parse(res.body());
+			const auto zakToken = tokenJo.at("token").get<std::string>();
+
+			return zakToken;
 		}
 	}
 }

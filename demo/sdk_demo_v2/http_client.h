@@ -89,7 +89,7 @@ namespace saz {
 
 		class HttpClient {
 		private:
-			HttpResponse doRequest(const tstring& method, const tstring& server, const tstring& path, const std::vector<tstring>& headers, const HttpUrlEncodedBody& body) {
+			HttpResponse doRequest(const tstring& method, const tstring& server, const tstring& path, const std::vector<tstring>& headers, const HttpUrlEncodedBody* body) {
 #define HINTERNET_SMART_PTR(e) ::std::unique_ptr<void, ::saz::http::detail::InternetHandleDeleter>(e, ::saz::http::detail::InternetHandleDeleter{})
 				static const TCHAR* ACCEPT_TYPE[] = {
 					_T("application/json"),
@@ -108,11 +108,16 @@ namespace saz {
 
 				tstring header = _T("Content-Type: application/x-www-form-urlencoded");
 				
-				const auto bytes = body.toBytes();
-				auto bytes_p = std::make_unique<char[]>(bytes.size());
-				std::copy(std::begin(bytes), std::end(bytes), bytes_p.get());
+				if (body == nullptr) {
+					::WinHttpSendRequest(req.get(), header.c_str(), header.size(), nullptr, 0, 0, 0);
+				} else {
+					const auto bytes = body->toBytes();
+					auto bytes_p = std::make_unique<char[]>(bytes.size());
+					std::copy(std::begin(bytes), std::end(bytes), bytes_p.get());
 
-				::WinHttpSendRequest(req.get(), header.c_str(), header.size(), bytes_p.get(), bytes.size(), bytes.size(), 0);
+					::WinHttpSendRequest(req.get(), header.c_str(), header.size(), bytes_p.get(), bytes.size(), bytes.size(), 0);
+				}
+				
 				::WinHttpReceiveResponse(req.get(), nullptr);
 
 				DWORD status_code = 0;
@@ -142,7 +147,11 @@ namespace saz {
 
 		public:
 			HttpResponse post(const tstring& server, const tstring& path, const std::vector<tstring>& headers, const HttpUrlEncodedBody& body) {
-				return doRequest(_T("POST"), server, path, headers, body);
+				return doRequest(_T("POST"), server, path, headers, &body);
+			}
+
+			HttpResponse get(const tstring& server, const tstring& path, const std::vector<tstring>& headers) {
+				return doRequest(_T("GET"), server, path, headers, nullptr);
 			}
 		};
 	}
