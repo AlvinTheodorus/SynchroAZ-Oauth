@@ -58,8 +58,8 @@ namespace saz {
 			Token refresh() {
 				return *this;
 			}
-			bool isAccessTokenExpired() const noexcept {}
-			bool isRefreshTokenExpired() const noexcept {}
+			bool isAccessTokenExpired() const noexcept { return false; }
+			bool isRefreshTokenExpired() const noexcept { return false; }
 
 			Token refreshIfExpired() {
 				return *this;
