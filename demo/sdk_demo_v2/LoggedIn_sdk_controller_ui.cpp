@@ -143,6 +143,7 @@ LRESULT CSDKLoggedInUIMgr::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam
 	{
 		OnDestroy(uMsg, wParam, lParam, bHandled);
 	}
+	OutputDebugString((_T("LoggedIn Window Event: ") + std::to_wstring(uMsg) + _T(" ") + std::to_wstring(wParam) + _T(" ") + std::to_wstring(TRUE) + _T("\n")).c_str());
 
 	if( m_PaintManager.MessageHandler(uMsg, wParam, lParam, lRes) ) 
 	{
@@ -383,27 +384,36 @@ void CSDKLoggedInUIMgr::DoStartMeetingBtnClick(bool bHasVideo)
 
 	const auto token = saz::oauth2::Token::GetCurrent();
 	const auto zakToken = saz::oauth2::GetZakToken(token);
+	const auto user = saz::oauth2::GetUser(token);
+
 	const auto zakTokenWide = saz::StringToWideString(zakToken);
+	const auto userIdWide = saz::StringToWideString(user.id());
+	const auto userNameWide = saz::StringToWideString(user.firstName() + " " + user.lastName());
 
 	ZOOM_SDK_NAMESPACE::StartParam startParam = {};
 	startParam.userType = ZOOM_SDK_NAMESPACE::SDK_UT_WITHOUT_LOGIN;
+	/*
 	startParam.param.normaluserStart.vanityID = NULL;
 	startParam.param.normaluserStart.hDirectShareAppWnd = NULL;
 	startParam.param.normaluserStart.customer_key = NULL;
 	startParam.param.normaluserStart.isVideoOff = bHasVideo ? false : true;
 	startParam.param.normaluserStart.isAudioOff = false;
-	startParam.param.normaluserStart.isDirectShareDesktop = false;
+	startParam.param.normaluserStart.isDirectShareDesktop = false;*/
 
 	ZOOM_SDK_NAMESPACE::StartParam4WithoutLogin startMeetingWithoutLoginParam = {};
 	startMeetingWithoutLoginParam.zoomuserType = ZOOM_SDK_NAMESPACE::ZoomUserType_APIUSER;
 	startMeetingWithoutLoginParam.userZAK = zakTokenWide.c_str();
+	startMeetingWithoutLoginParam.userID = userIdWide.c_str();
+	startMeetingWithoutLoginParam.userName = userNameWide.c_str();
+	startMeetingWithoutLoginParam.meetingNumber = user.personalMeetingId();
 
 	startParam.param.withoutloginStart = startMeetingWithoutLoginParam;
 	
 	if (SDKInterfaceWrap::GetInst().IsSelectCustomizedUIMode() && m_pAppEvent)
 		m_pAppEvent->InitCustomizedUI();
 	
-	if(ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS == m_loggedInUIWorkFlow.StartMeeting(startParam))
+	const auto meeting_result = m_loggedInUIWorkFlow.StartMeeting(startParam);
+	if(ZOOM_SDK_NAMESPACE::SDKERR_SUCCESS == meeting_result)
 	{
 		m_bConnectToMeeting = true;
 		m_bInMeeting = false;

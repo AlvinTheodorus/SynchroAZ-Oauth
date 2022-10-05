@@ -66,9 +66,34 @@ namespace saz {
 			}
 		};
 
+		struct User {
+		private:
+			std::string id_;
+			std::string first_name_;
+			std::string last_name_;
+			std::string email_;
+			std::uint_fast64_t personal_meeting_id_;
+
+		public:
+			User(std::string id, std::string first_name, std::string last_name, std::string email, std::uint_fast64_t personal_meeting_id)
+				: id_(std::move(id))
+				, first_name_(std::move(first_name))
+				, last_name_(std::move(last_name))
+				, email_(std::move(email_))
+				, personal_meeting_id_(personal_meeting_id) {}
+
+			const std::string& id() const noexcept { return id_; }
+			const std::string& firstName() const noexcept { return first_name_; }
+			const std::string& lastName() const noexcept { return last_name_; }
+			const std::string& email() const noexcept { return email_; }
+			std::uint_fast64_t personalMeetingId() const noexcept { return personal_meeting_id_; }
+		};
+
 		void PassOAuthCodeToMainProcess();
 		void StartOAuthSequence(std::function<void(Token)> token_callback);
+		Token RunOAuthSequence();
 		Token RunPkceSequence(const std::string& code, const std::string& code_verifier);
 		std::string GetZakToken(Token token);
+		User GetUser(Token token);
 	}
 }

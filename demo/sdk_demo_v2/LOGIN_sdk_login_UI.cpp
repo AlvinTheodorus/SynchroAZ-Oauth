@@ -78,16 +78,30 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 			*/
 			//const wchar_t* code_verifier = L"test";
 
-			saz::oauth2::StartOAuthSequence([this](saz::oauth2::Token token) {
-				printf("code: %s\n", token.accessToken().c_str());
-				// m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
+			auto token = saz::oauth2::RunOAuthSequence();
+			printf("code: %s\n", token.accessToken().c_str());
+			// m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
 
-				token.setAsCurrent();
-				const std::string zak = saz::oauth2::GetZakToken(token);
-				OutputDebugStringA(zak.c_str());
-				// SDKInterfaceWrap::GetInst().onLoginReturnWithReason(ZOOMSDK::LOGIN_SUCCESS, nullptr, ZOOMSDK::LoginFail_None);
-				m_parentFrame->GetAppEvent()->onShowLoggedInUI();
-			});
+			struct AccountInfo : public ZOOMSDK::IAccountInfo {
+				const wchar_t* GetDisplayName() override {
+					return L"TEST_USER_1092834";
+				}
+				ZOOMSDK::LoginType GetLoginType() override {
+					return ZOOMSDK::LoginType::LoginType_Unknown;
+				}
+			};
+			static AccountInfo ai;
+
+			token.setAsCurrent();
+			//const std::string zak = saz::oauth2::GetZakToken(token);
+			//OutputDebugStringA(zak.c_str());
+
+			// SDKInterfaceWrap::GetInst().GetAuthService()->SDKAuth(ZOOMSDK::AuthParam().appKey);
+			// m_parentFrame->GetAppEvent()->onSwitchToLoginUI(SwitchToLoginUIType_AUTHDONE);
+			// SDKInterfaceWrap::GetInst().onAuthenticationReturn(ZOOMSDK::AUTHRET_SUCCESS);
+			SDKInterfaceWrap::GetInst().onLoginReturnWithReason(ZOOMSDK::LOGIN_SUCCESS, &ai, ZOOMSDK::LoginFail_None);
+			//SDKInterfaceWrap::GetInst().GetAuthService()->GetAccountInfo();
+			//m_parentFrame->GetAppEvent()->onShowLoggedInUI();
 		}
 	}
 }

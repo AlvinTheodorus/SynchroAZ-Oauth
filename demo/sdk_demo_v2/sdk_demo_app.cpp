@@ -208,7 +208,7 @@ void CSDKDemoApp::onShowLoggedInUI(LoggedIn_MeetingUI_type nType_)
 		return;
 
 	m_sdk_loggedIn_ui_mgr->SetEvent(this);
-	m_sdk_loggedIn_ui_mgr->Create(NULL, _T("Windows app using zoom win sdk"), UI_WNDSTYLE_DIALOG, WS_EX_WINDOWEDGE);
+	m_sdk_loggedIn_ui_mgr->Create(NULL, _T("(Logged IN)Windows app using zoom win sdk"), UI_WNDSTYLE_DIALOG, WS_EX_WINDOWEDGE);
 	m_sdk_loggedIn_ui_mgr->SetIcon(IDI_ICON_LOGO);
 
 	CRect rc(0,0,0,0);

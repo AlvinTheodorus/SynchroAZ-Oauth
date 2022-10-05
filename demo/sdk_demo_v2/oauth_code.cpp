@@ -59,7 +59,7 @@ namespace {
 	constexpr char OAUTH2_RESPONSE_TYPE[] = "code";
 	constexpr char OAUTH2_REDIRECT_URI[] = "com.5saz://v1/auth/oauth2";
 	constexpr char OAUTH2_CLIENT_ID[] = "ycoFdKfSROl4EjeqUNeGw";
-	constexpr char OAUTH2_CLIENT_SECRET[] = "";
+	constexpr char OAUTH2_CLIENT_SECRET[] = "hH3NEP1wE7VxHH6tSd6ntTNDujxERcCf";
 	constexpr char OAUTH2_CODE_CHALLENGE_METHOD[] = "S256";
 	constexpr TCHAR OAUTH2_CODE_EXCHANGE_PIPE_PATH[] = _T(R"(\\.\pipe\synchroaz\com.5saz.auth.oauth2)");
 	constexpr TCHAR OAUTH2_TOKEN_ENDPOINT_SERVER[] = _T("zoom.us");
@@ -174,79 +174,84 @@ namespace saz {
 			}
 		}
 
-		void StartOAuthSequence(std::function<void(Token)> token_callback) {
-			std::thread thread([token_callback] {
-				std::string code_verifier = GenerateRandomString(64);
-				std::string code_challenge = ConvertToS256(code_verifier);
-				
-				std::stringstream ss;
-				ss << "https://zoom.us/oauth/authorize"
-					<< "?response_type=" << OAUTH2_RESPONSE_TYPE
-					<< "&redirect_uri=" << OAUTH2_REDIRECT_URI
-					<< "&client_id=" << OAUTH2_CLIENT_ID
-					<< "&code_challenge=" << code_challenge
-					<< "&code_challenge_method=" << OAUTH2_CODE_CHALLENGE_METHOD;
-				std::string url_naive = ss.str();
+		Token RunOAuthSequence() {
+			std::string code_verifier = GenerateRandomString(64);
+			std::string code_challenge = ConvertToS256(code_verifier);
 
-				auto url_wide = StringToWideString(url_naive);
+			std::stringstream ss;
+			ss << "https://zoom.us/oauth/authorize"
+				<< "?response_type=" << OAUTH2_RESPONSE_TYPE
+				<< "&redirect_uri=" << OAUTH2_REDIRECT_URI
+				<< "&client_id=" << OAUTH2_CLIENT_ID
+				<< "&code_challenge=" << code_challenge
+				<< "&code_challenge_method=" << OAUTH2_CODE_CHALLENGE_METHOD;
+			std::string url_naive = ss.str();
 
-				::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+			auto url_wide = StringToWideString(url_naive);
 
-				const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
-				if (hPipe == INVALID_HANDLE_VALUE) {
-					std::exit(EXIT_FAILURE);
+			::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+
+			const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
+			if (hPipe == INVALID_HANDLE_VALUE) {
+				std::exit(EXIT_FAILURE);
+			}
+			std::string url;
+			while (true) {
+				char buffer[256] = {};
+				DWORD bytes_read = 0;
+				if (::ReadFile(hPipe, buffer, sizeof(buffer), &bytes_read, nullptr)) {
+					url.assign(buffer, bytes_read);
+					break;
 				}
-				std::string url;
-				while (true) {
-					char buffer[256] = {};
-					DWORD bytes_read = 0;
-					if (::ReadFile(hPipe, buffer, sizeof(buffer), &bytes_read, nullptr)) {
-						url.assign(buffer, bytes_read);
-						break;
-					}
-				}
-				::DisconnectNamedPipe(hPipe);
-				::CloseHandle(hPipe);
+			}
+			::DisconnectNamedPipe(hPipe);
+			::CloseHandle(hPipe);
 
-				const auto uri = Uri::Parse(url);
-				if (!uri) {
-					printf("Parse failed\n");
-					std::exit(EXIT_FAILURE);
-				}
+			const auto uri = Uri::Parse(url);
+			if (!uri) {
+				printf("Parse failed\n");
+				std::exit(EXIT_FAILURE);
+			}
 
-				printf("scheme %s\n", uri->scheme().c_str());
-				if (uri->scheme() != "com.5saz") {
-					printf("Invalid scheme %s\n", uri->scheme().c_str());
-					std::exit(EXIT_FAILURE);
-				}
+			printf("scheme %s\n", uri->scheme().c_str());
+			if (uri->scheme() != "com.5saz") {
+				printf("Invalid scheme %s\n", uri->scheme().c_str());
+				std::exit(EXIT_FAILURE);
+			}
 
-				printf("path %s\n", uri->path().c_str());
-				if (uri->path() != "/v1/auth/oauth2") {
-					printf("Invalid path %s\n", uri->path().c_str());
-					std::exit(EXIT_FAILURE);
+			printf("path %s\n", uri->path().c_str());
+			if (uri->path() != "/v1/auth/oauth2") {
+				printf("Invalid path %s\n", uri->path().c_str());
+				std::exit(EXIT_FAILURE);
+			}
+			const auto& query = uri->query();
+			for (const auto& kv : query) {
+				printf("  key: %s\n", kv.first.c_str());
+				for (const auto& v : kv.second) {
+					printf("    value: %s\n", v.c_str());
 				}
-				const auto& query = uri->query();
+			}
+			if (query.find("code") == std::end(query)) {
+				printf("Cannot find query named 'code'\n");
 				for (const auto& kv : query) {
 					printf("  key: %s\n", kv.first.c_str());
 					for (const auto& v : kv.second) {
 						printf("    value: %s\n", v.c_str());
 					}
 				}
-				if (query.find("code") == std::end(query)) {
-					printf("Cannot find query named 'code'\n");
-					for (const auto& kv : query) {
-						printf("  key: %s\n", kv.first.c_str());
-						for (const auto& v : kv.second) {
-							printf("    value: %s\n", v.c_str());
-						}
-					}
-					std::exit(EXIT_FAILURE);
-				}
+				std::exit(EXIT_FAILURE);
+			}
 
-				const auto& code = query.at("code")[0];
+			const auto& code = query.at("code")[0];
 
-				const auto token = RunPkceSequence(code, code_verifier);
-				token_callback(token);
+			const auto token = RunPkceSequence(code, code_verifier);
+			return token;
+		}
+
+		void StartOAuthSequence(std::function<void(Token)> token_callback) {
+			std::thread thread([token_callback] {
+				
+				token_callback(RunOAuthSequence());
 			});
 			thread.detach();
 		}
@@ -292,6 +297,25 @@ namespace saz {
 			const auto zakToken = tokenJo.at("token").get<std::string>();
 
 			return zakToken;
+		}
+
+		User GetUser(Token token) {
+			token = token.refreshIfExpired();
+
+			http::HttpClient client;
+			const auto res = client.get(
+				_T("api.zoom.us"),
+				_T("/v2/users/me"),
+				{ _T("Authorization: Bearer ") + StringToWideString(token.accessToken()) }
+			);
+			const auto userJo = nlohmann::json::parse(res.body());
+			const auto id = userJo.at("id").get<std::string>();
+			const auto email = userJo.at("email").get<std::string>();
+			const auto first_name = userJo.at("first_name").get<std::string>();
+			const auto last_name = userJo.at("last_name").get<std::string>();
+			const auto pmi = userJo.at("pmi").get<std::uint_fast64_t>();
+
+			return {id, first_name, last_name, email, pmi};
 		}
 	}
 }
