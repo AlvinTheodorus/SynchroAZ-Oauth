@@ -509,6 +509,12 @@
     <ClInclude Include="oauth_code.h">
       <Filter>Source Files\2_how_to_login</Filter>
     </ClInclude>
+    <ClInclude Include="http_client.h">
+      <Filter>Source Files\2_how_to_login</Filter>
+    </ClInclude>
+    <ClInclude Include="json.h">
+      <Filter>Source Files\2_how_to_login</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="sdk_demo_v2.rc">

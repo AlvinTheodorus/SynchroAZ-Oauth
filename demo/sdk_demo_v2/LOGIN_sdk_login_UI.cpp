@@ -92,7 +92,7 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 				prefix_of_vanity_url = _T("success");
 
 			//const wchar_t* url = m_loginSSOWorkFlow.GetSSOUrl(prefix_of_vanity_url);
-			const wchar_t* url = _T("https://zoom.us/oauth/authorize?");
+			const wchar_t* url = _T("https://zoom.us/oauth/authorize?iVpmSZ5wSyqqcFTPxkDGDg");
 			if (url)
 				::ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWNORMAL);
 			*/
@@ -112,11 +112,11 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 
 
 			//m_parentFrame->ShowErrorMessage(L"test");
-			
-			saz::oauth2::StartOAuthSequence([this](std::string code) {
+
+			/*saz::oauth2::StartOAuthSequence([this](std::string code) {
 				//printf("code: %s\n", code.c_str());
 				//m_parentFrame->ShowErrorMessage((L"code : " + saz::StringToWideString(code)).c_str());
-			
+
 
 				std::string result;
 				CURL* curl;
@@ -125,7 +125,7 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 				struct curl_httppost* post = NULL;
 				struct curl_httppost* last = NULL;
 
-				std::string client_data = Base64URLconvert("ycoFdKfSROl4EjeqUNeGw:hH3NEP1wE7VxHH6tSd6ntTNDujxERcCf");
+				std::string client_data = Base64convert("ycoFdKfSROl4EjeqUNeGw:hH3NEP1wE7VxHH6tSd6ntTNDujxERcCf");
 				client_data = "Authorization: Basic " + client_data;
 				const char* c_data = client_data.c_str();
 
@@ -138,8 +138,9 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 					curl_easy_setopt(curl, CURLOPT_URL, "https://zoom.us/oauth/token");
 
 					//headers
+					headers = curl_slist_append(headers, "Host: zoom.us");
 					headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
-					curl_slist_append(headers, c_data);
+					headers = curl_slist_append(headers, c_data);
 
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); //pass custom made headers
 
@@ -151,34 +152,48 @@ void CSDKLoginWithSSOUIGroup::Notify( TNotifyUI& msg )
 						CURLFORM_END);
 					curl_formadd(&post, &last,
 						CURLFORM_COPYNAME, "grant_type",
-						CURLFORM_COPYCONTENTS, "authorization_code", 
+						CURLFORM_COPYCONTENTS, "authorization_code",
 						CURLFORM_END);
 					curl_formadd(&post, &last,
 						CURLFORM_COPYNAME, "redirect_uri",
-						CURLFORM_COPYCONTENTS, "com.5saz://v1/auth/oauth2", 
+						CURLFORM_COPYCONTENTS, "com.5saz://v1/auth/oauth2",
 						CURLFORM_END);
 					curl_formadd(&post, &last,
 						CURLFORM_COPYNAME, "code_verifier",
-						CURLFORM_COPYCONTENTS, "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I", 
+						CURLFORM_COPYCONTENTS, "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I",
 						CURLFORM_END);
 
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post); //pass custom made body
 					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 					curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
-					
+					curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
 					res = curl_easy_perform(curl); // post away
 
 					curl_formfree(post);
-					curl_easy_cleanup(curl);
 					if (CURLE_OK != res) {
 						std::cerr << "CURL error: " << res << '\n';
 					}
+					curl_easy_cleanup(curl);
+					curl_slist_free_all(headers);
 				}
 				curl_global_cleanup();
 				std::cout << result << "\n\n";
 				std::wstring widestr = std::wstring(result.begin(), result.end());
 				m_parentFrame->ShowErrorMessage(widestr.c_str());
 
+			}
+			);
+			*/
+			saz::oauth2::StartOAuthSequence([this](saz::oauth2::Token token) {
+				printf("code: %s\n", token.accessToken().c_str());
+				//m_parentFrame->ShowErrorMessage((L"code got" + saz::StringToWideString(token.accessToken())).c_str());
+				ZOOM_SDK_NAMESPACE::IAuthService* auth_service = SDKInterfaceWrap::GetInst().GetAuthService();
+				if (m_parentFrame)
+				{
+					m_parentFrame->SetCurrentPage(m_loginWithSSOPage);
+					m_parentFrame->SwitchToWaitingPage(L"waiting sso login...", true);
+				}
 			});
 		}
 	}

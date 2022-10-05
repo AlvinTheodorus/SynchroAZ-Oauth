@@ -14,13 +14,15 @@
 #include "hex.h"
 
 #include "stdafx.h"
+#include "http_client.h"
+#include "json.h"
 
 namespace {
 	std::string GenerateRandomString(std::size_t length) {
-		static constexpr char CHARS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		static constexpr char CHARS[] = u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 		std::random_device rand_device;
-		std::uniform_int_distribution<std::uint_fast16_t> rand(0, std::size(CHARS) - 1);
+		std::uniform_int_distribution<std::uint_fast16_t> rand(0, std::size(CHARS) - 2);
 
 		std::string s(length, '\0');
 		for (std::size_t i = 0; i < length; ++i) {
@@ -29,14 +31,20 @@ namespace {
 		return s;
 	}
 
-	std::string Sha256HashString(std::string aString) {
+	std::string ConvertToS256(std::string aString) {
 		std::string digest;
 		CryptoPP::SHA256 hash;
 
-		CryptoPP::StringSource foo9(aString, true,
+		CryptoPP::StringSource foo(aString, true,
 			new CryptoPP::HashFilter(hash,
-				new CryptoPP::StringSink(digest)));
+				new CryptoPP::Base64Encoder(
+					new CryptoPP::StringSink(digest), false, 500)));
 
+		while (digest.back() == '=') {
+			digest.pop_back();
+		}
+		std::replace(std::begin(digest), std::end(digest), '+', '-');
+		std::replace(std::begin(digest), std::end(digest), '/', '_');
 		return digest;
 	}
 
@@ -54,8 +62,14 @@ namespace {
 	constexpr char OAUTH2_REDIRECT_URI[] = "com.5saz://v1/auth/oauth2";
 	//constexpr char OAUTH2_CLIENT_ID[] = "iVpmSZ5wSyqqcFTPxkDGDg"; devzoom
 	constexpr char OAUTH2_CLIENT_ID[] = "ycoFdKfSROl4EjeqUNeGw";
+	constexpr char OAUTH2_CLIENT_SECRET[] = "hH3NEP1wE7VxHH6tSd6ntTNDujxERcCf";
 	constexpr char OAUTH2_CODE_CHALLENGE_METHOD[] = "S256";
 	constexpr TCHAR OAUTH2_CODE_EXCHANGE_PIPE_PATH[] = _T(R"(\\.\pipe\synchroaz\com.5saz.auth.oauth2)");
+	constexpr TCHAR OAUTH2_TOKEN_ENDPOINT_SERVER[] = _T("zoom.us");
+	constexpr TCHAR OAUTH2_TOKEN_ENDPOINT_PATH[] = _T("/oauth/token");
+	constexpr TCHAR ZAK_TOKEN_ENDPOINT_PATH[] = _T("/v2/users/me/token");
+
+	static_assert(std::size(OAUTH2_CLIENT_SECRET) > 0, "OAUTH2_CLIENT_SECRET is not set");
 
 	class Uri {
 	public:
@@ -156,17 +170,21 @@ namespace saz {
 					}
 
 					::WriteFile(hPipe, url.c_str(), url.size(), nullptr, nullptr);
+					::CloseHandle(hPipe);
 					std::exit(EXIT_SUCCESS);
 				}
 			}
 		}
 
-		void StartOAuthSequence(std::function<void(std::string)> code_callback) {
-			//std::string code_verifier = GenerateRandomString(43);//"OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
-			std::string code_verifier = "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
-			//std::string code_challenge = Base64Encode(Sha256HashString(code_verifier));
-			std::string code_challenge = "YWRmMTUyNGZkODZlMDFiMTI4ZTQ1M2Y0NzExYWNkNWJjZDc2NWU2ZTRjMDYxMWVjYmJiZmZhMmNkYzRhOWYyOA";
+		
+		void StartOAuthSequence(std::function<void(Token)> token_callback) {
+			std::thread thread([token_callback] {
+				std::string code_verifier = GenerateRandomString(64);
+				//std::string code_verifier = "OoRepCjjX8P4perVeWHK-5TKSfyZLPuCjirkjY3hh7I";
+				std::string code_challenge = ConvertToS256(code_verifier);
+				//std::string code_challenge = "YWRmMTUyNGZkODZlMDFiMTI4ZTQ1M2Y0NzExYWNkNWJjZDc2NWU2ZTRjMDYxMWVjYmJiZmZhMmNkYzRhOWYyOA";
 
+				
 			std::stringstream ss;
 			ss << "https://zoom.us/oauth/authorize"
 				<< "?response_type=" << OAUTH2_RESPONSE_TYPE
@@ -179,8 +197,6 @@ namespace saz {
 			auto url_wide = StringToWideString(url_naive);
 
 			::ShellExecute(nullptr, _T("open"), url_wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-			//::ShellExecute(nullptr, _T("open"), _T("com.5saz://v1/auth/oauth2?code=abcdefghijklmnopqrstuvwxyz"), nullptr, nullptr, SW_SHOWNORMAL);
-			std::thread thread([code_callback] {
 
 				const auto hPipe = ::CreateNamedPipe(OAUTH2_CODE_EXCHANGE_PIPE_PATH, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, 0, 0, 100, nullptr);
 				if (hPipe == INVALID_HANDLE_VALUE) {
@@ -195,6 +211,8 @@ namespace saz {
 						break;
 					}
 				}
+				::DisconnectNamedPipe(hPipe);
+				::CloseHandle(hPipe);
 
 				const auto uri = Uri::Parse(url);
 				if (!uri) {
@@ -231,11 +249,53 @@ namespace saz {
 					std::exit(EXIT_FAILURE);
 				}
 
-				const auto code = query.at("code")[0];
-				printf("code: %s\n", code.c_str());
-				code_callback(code);
+				const auto& code = query.at("code")[0];
+
+				const auto token = RunPkceSequence(code, code_verifier);
+				token_callback(token);
 			});
 			thread.detach();
+		}
+
+		Token RunPkceSequence(const std::string& code, const std::string& code_verifier) {
+			const auto basicKey = Base64Encode(OAUTH2_CLIENT_ID + std::string(":") + OAUTH2_CLIENT_SECRET);
+			//const auto basicKey = Base64Encode("ycoFdKfSROl4EjeqUNeGw" + std::string(":") + "hH3NEP1wE7VxHH6tSd6ntTNDujxERcCf");
+			const auto basicKeyWide = StringToWideString(basicKey);
+
+			http::HttpClient client;
+			const auto response = client.post(
+				_T("zoom.us"),
+				OAUTH2_TOKEN_ENDPOINT_PATH,
+				{ _T("Authorization: Basic ") + basicKeyWide },
+				http::HttpUrlEncodedBody{}
+				.add("code", code)
+				.add("grant_type", "authorization_code")
+				.add("redirect_uri", OAUTH2_REDIRECT_URI)
+				.add("code_verifier", code_verifier)
+			);
+			fprintf(stderr, "body: %s\n", response.body().c_str());
+			const auto jo = nlohmann::json::parse(response.body());
+			const auto access_token = jo.at("access_token").get<std::string>();
+			const auto token_type = jo.at("token_type").get<std::string>();
+			const auto refresh_token = jo.at("refresh_token").get<std::string>();
+			const auto expires_in = jo.at("expires_in").get<std::uint_fast64_t>();
+			const auto scope = jo.at("scope").get<std::string>();
+			const auto access_token_wide = StringToWideString(access_token);
+
+			http::HttpClient client2;
+			const auto response2 = client2.get(
+				_T("api.zoom.us"),
+				ZAK_TOKEN_ENDPOINT_PATH,
+				{ _T("Authorization: Bearer {{") + access_token_wide + _T("}}") },
+				http::HttpUrlEncodedBody{}
+				.add("type", "zak")
+				.add("ttl", "7200")
+			);
+			fprintf(stderr, "body: %s\n", response2.body().c_str());
+			const auto jo2 = nlohmann::json::parse(response2.body());
+
+			Token token(access_token, token_type, refresh_token, expires_in, scope);
+			return token;
 		}
 	}
 }
